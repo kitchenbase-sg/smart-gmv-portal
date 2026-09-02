@@ -138,11 +138,11 @@ function renderDay() {
           <div class="chan-l">${c.photoUrl ? `<img class="thumb" src="${esc(photoSrc(c.photoUrl))}" data-full="${esc(photoSrc(c.photoUrl))}" alt="">` : '<div class="thumb none">no photo</div>'}</div>
           <div class="chan-m"><div class="chan-name">${chanLabel(ch, c.label)}</div>
             ${c.noSales ? '<div class="fig muted">no sales declared</div>' : `<div class="fig"><b>${esc(String(c.orders ?? '—'))}</b> orders · <b>${money(c.gmv)}</b></div>`}
-            ${(c.extras || []).length ? extrasBlock(c) : ''}
             ${(r.amendments || []).filter((a) => a.channel === ch).map((a) => `<div class="req-line ${esc(a.status)}">${statusLabel(a)}${a.status === 'pending' ? ` <button class="link" data-withdraw="${esc(a.id)}">withdraw</button>` : ''}</div>`).join('')}
           </div>
           <div class="chan-r">${r.amendable && (ch === 'grab' || ch === 'fp') && !pend.some((a) => a.channel === ch)
             ? `<button class="btn-ghost" data-amend="${esc(r.recordId)}" data-ch="${esc(ch)}" data-brand="${esc(r.brand)}">Edit</button>` : ''}</div>
+          ${(c.extras || []).length ? extrasBlock(c) : ''}
         </div>`).join('') : '<div class="fine">Recorded with no platform figures.</div>'}
     </div>`;
   }).join('');
