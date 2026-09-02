@@ -63,6 +63,11 @@ async function boot() {
 function enter() {
   $('acct-name').textContent = state.me.account || state.me.email;
   $('acct-brands').textContent = (state.me.brands || []).join(' · ');
+  // Bound the calendar before the first read lands: yesterday by the phone's
+  // clock, 45 days back. The server's answer replaces both on the next render,
+  // so an out-of-range day is greyed out in the picker, not rejected after a tap.
+  const guess = shiftDay(new Date().toISOString().slice(0, 10), -1);
+  $('day-pick').max = guess; $('day-pick').min = shiftDay(guess, -(state.days - 1));
   show('view-day');
   loadDay('');
 }
@@ -77,15 +82,22 @@ async function loadDay(date) {
   } catch (e) { state.error = e.message; }
   state.loading = false; renderDay();
 }
-$('day-prev').onclick = () => state.date && loadDay(shiftDay(state.date, -1));
+
+const minDay = () => shiftDay(state.yesterday, -(state.days - 1));
+$('day-prev').onclick = () => state.date && state.date > minDay() && loadDay(shiftDay(state.date, -1));
 $('day-next').onclick = () => state.date && state.date < state.yesterday && loadDay(shiftDay(state.date, 1));
-$('day-pick').onchange = (e) => e.target.value && loadDay(e.target.value);
+$('day-pick').onchange = (e) => {
+  const v = e.target.value; if (!v) return;
+  const lo = minDay(), hi = state.yesterday;
+  loadDay(v < lo ? lo : v > hi ? hi : v);       // browsers that ignore min/max still land inside the window
+};
 
 function renderDay() {
   if (state.date) {
     $('day-label').textContent = fmtDay(state.date) + (state.date === state.yesterday ? ' · yesterday' : '');
-    $('day-pick').value = state.date; $('day-pick').max = state.yesterday; $('day-pick').min = shiftDay(state.yesterday, -(state.days - 1));
+    $('day-pick').value = state.date; $('day-pick').max = state.yesterday; $('day-pick').min = minDay();
     $('day-next').disabled = state.date >= state.yesterday;
+    $('day-prev').disabled = state.date <= minDay();
   }
   const note = $('day-note');
   note.textContent = state.loading ? 'Loading…' : state.error ? `⚠ ${state.error}`
