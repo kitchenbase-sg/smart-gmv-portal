@@ -138,7 +138,7 @@ function renderDay() {
           <div class="chan-l">${c.photoUrl ? `<img class="thumb" src="${esc(photoSrc(c.photoUrl))}" data-full="${esc(photoSrc(c.photoUrl))}" alt="">` : '<div class="thumb none">no photo</div>'}</div>
           <div class="chan-m"><div class="chan-name">${chanLabel(ch, c.label)}</div>
             ${c.noSales ? '<div class="fig muted">no sales declared</div>' : `<div class="fig"><b>${esc(String(c.orders ?? '—'))}</b> orders · <b>${money(c.gmv)}</b></div>`}
-            ${(c.extras || []).length ? `<div class="fine">+ ${c.extras.length} order${c.extras.length > 1 ? 's' : ''} outside the summary</div>` : ''}
+            ${(c.extras || []).length ? extrasBlock(c) : ''}
             ${(r.amendments || []).filter((a) => a.channel === ch).map((a) => `<div class="req-line ${esc(a.status)}">${statusLabel(a)}${a.status === 'pending' ? ` <button class="link" data-withdraw="${esc(a.id)}">withdraw</button>` : ''}</div>`).join('')}
           </div>
           <div class="chan-r">${r.amendable && (ch === 'grab' || ch === 'fp') && !pend.some((a) => a.channel === ch)
@@ -146,9 +146,22 @@ function renderDay() {
         </div>`).join('') : '<div class="fine">Recorded with no platform figures.</div>'}
     </div>`;
   }).join('');
-  list.querySelectorAll('.thumb[data-full]').forEach((im) => im.onclick = () => openViewer(im.dataset.full));
+  list.querySelectorAll('.thumb[data-full]').forEach((im) => im.onclick = (e) => { e.preventDefault(); openViewer(im.dataset.full); });
   list.querySelectorAll('[data-amend]').forEach((b) => b.onclick = () => openAmend(b.dataset.amend, b.dataset.ch, b.dataset.brand));
   list.querySelectorAll('[data-withdraw]').forEach((b) => b.onclick = () => withdraw(b.dataset.withdraw));
+}
+/* Orders that were still being delivered when the summary screen was shot are
+   not on that screen. The facility team photographs each of those orders on
+   its own page and adds it, so the day's total = summary + these. Show the
+   split, the reason, and each order's photo. */
+function extrasBlock(c) {
+  const xs = c.extras || [];
+  const xg = xs.reduce((t, e) => t + Number(e.gmv || 0), 0);
+  const so = Number(c.orders || 0) - xs.length, sg = Number(c.gmv || 0) - xg;
+  return `<details class="xtra"><summary>${esc(String(so))} on the summary screen · ${money(sg)} &nbsp;<b>+ ${xs.length} added after · ${money(xg)}</b></summary>
+    <div class="xtra-note">The platform's summary screen only counts orders already completed when it was shot. Orders still being delivered at that moment were photographed one by one by the facility team and added here, so the total above is summary + these.</div>
+    <div class="xtra-list">${xs.map((e, i) => `<div class="xtra-row">${e.photoUrl ? `<img class="thumb sm" src="${esc(photoSrc(e.photoUrl))}" data-full="${esc(photoSrc(e.photoUrl))}" alt="">` : '<div class="thumb sm none">no photo</div>'}<span>order ${i + 1} · ${money(e.gmv)}</span></div>`).join('')}</div>
+  </details>`;
 }
 function statusLabel(a) {
   return a.status === 'pending' ? '⏳ correction waiting for review'
@@ -167,7 +180,10 @@ const am = { recordId: '', ch: '', dataUrl: '' };
 function openAmend(recordId, ch, brand) {
   am.recordId = recordId; am.ch = ch; am.dataUrl = '';
   $('am-title').textContent = `Edit ${brand} · ${CH[ch] || ch}`;
-  $('am-sub').textContent = `${fmtDay(state.date)} — upload the ${CH[ch] || ch} summary screen for that day.`;
+  const rec = state.records.find((r) => r.recordId === recordId) || {};
+  const xn = ((rec.channels || {})[ch] || {}).extras ? rec.channels[ch].extras.length : 0;
+  $('am-sub').textContent = `${fmtDay(state.date)} — upload the ${CH[ch] || ch} summary screen for that day.`
+    + (xn ? ` The ${xn} order${xn > 1 ? 's' : ''} added after the screen was shot will be kept; only the summary figure is reviewed.` : '');
   $('am-chan').innerHTML = ['grab', 'fp'].map((c) => `<button class="chip ${c === ch ? 'on' : ''}" data-c="${c}"><img class="ch-logo" src="${CH_LOGO[c]}" alt="${CH[c]}"></button>`).join('');
   $('am-chan').querySelectorAll('.chip').forEach((b) => b.onclick = () => { am.ch = b.dataset.c; $('am-chan').querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', x === b)); $('am-title').textContent = `Edit ${brand} · ${CH[am.ch]}`; });
   $('am-preview').classList.add('hidden'); $('am-preview').src = ''; $('am-drop-empty').classList.remove('hidden');
