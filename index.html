@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Smart GMV · Licensee portal</title>
+<link rel="stylesheet" href="app.css?v=20260902a">
+</head>
+<body>
+<!-- ============ LOGIN ============ -->
+<div class="view" id="view-login">
+  <div class="login-wrap">
+    <div class="brand"><span class="brand-mark">S</span><span class="brand-name">Smart GMV</span><span class="brand-sub">Licensee portal</span></div>
+    <form class="card login-card" id="login-form" autocomplete="on">
+      <label class="field"><span>Email</span><input type="email" id="login-email" required autocomplete="username" inputmode="email"></label>
+      <label class="field"><span>Password</span><input type="password" id="login-pw" required autocomplete="current-password"></label>
+      <button class="btn-primary" id="login-btn" type="submit">Sign in</button>
+      <p class="err hidden" id="login-err"></p>
+    </form>
+    <p class="fine">Your sales records for the kitchens you license from us. Corrections are reviewed by the facility team before anything changes.</p>
+  </div>
+</div>
+
+<!-- ============ DAY VIEW ============ -->
+<div class="view hidden" id="view-day">
+  <header class="top">
+    <div class="top-l"><span class="brand-mark sm">S</span><div><div class="top-title" id="acct-name">—</div><div class="top-sub" id="acct-brands">—</div></div></div>
+    <div class="top-r"><button class="link" id="btn-requests">My requests</button><button class="link" id="btn-logout">Sign out</button></div>
+  </header>
+  <div class="body">
+    <div class="daybar card">
+      <button class="icon" id="day-prev" aria-label="Previous day">‹</button>
+      <div class="daybar-mid">
+        <div class="day-label" id="day-label">—</div>
+        <input type="date" id="day-pick" class="day-pick">
+      </div>
+      <button class="icon" id="day-next" aria-label="Next day">›</button>
+    </div>
+    <p class="note" id="day-note"></p>
+    <div id="day-list"></div>
+  </div>
+</div>
+
+<!-- ============ MY REQUESTS ============ -->
+<div class="view hidden" id="view-requests">
+  <header class="top">
+    <div class="top-l"><button class="icon" id="req-back" aria-label="Back">‹</button><div class="top-title">My correction requests</div></div>
+  </header>
+  <div class="body"><div id="req-list"></div></div>
+</div>
+
+<!-- ============ CORRECTION SHEET ============ -->
+<div class="overlay hidden" id="amend-overlay">
+  <div class="sheet">
+    <div class="sheet-h"><b id="am-title">Submit a correction</b><button class="icon" id="am-close" aria-label="Close">×</button></div>
+    <p class="note" id="am-sub"></p>
+    <div class="chan-pick" id="am-chan"></div>
+    <div class="drop" id="am-drop">
+      <input type="file" id="am-file" accept="image/*" capture="environment" hidden>
+      <div id="am-drop-empty">
+        <div class="drop-icon">📷</div>
+        <b>Upload the platform's summary screen</b>
+        <small>A fresh screenshot of that day's total. Numbers cannot be typed — the photo is the evidence.</small>
+      </div>
+      <img id="am-preview" class="hidden" alt="">
+    </div>
+    <p class="err hidden" id="am-err"></p>
+    <button class="btn-primary" id="am-submit" disabled>Submit for review</button>
+    <p class="fine">The facility team will check the screen and the reading. If approved, the record is corrected and you will see it here.</p>
+  </div>
+</div>
+
+<!-- ============ PHOTO VIEWER ============ -->
+<div class="overlay hidden" id="viewer"><div class="viewer-inner"><button class="icon viewer-close" id="viewer-close" aria-label="Close">×</button><img id="viewer-img" alt=""></div></div>
+
+<div class="toast hidden" id="toast"></div>
+<script src="app.js?v=20260902a"></script>
+</body>
+</html>
