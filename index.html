@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>Smart GMV · Licensee portal</title>
-<link rel="stylesheet" href="app.css?v=20260902a">
+<link rel="stylesheet" href="app.css?v=20260902b">
 </head>
 <body>
 <!-- ============ LOGIN ============ -->
 <div class="view" id="view-login">
   <div class="login-wrap">
-    <div class="brand"><span class="brand-mark">S</span><span class="brand-name">Smart GMV</span><span class="brand-sub">Licensee portal</span></div>
+    <div class="brand"><img class="brand-mark" src="icons/kb-mark.svg?v=20260902b" alt="KitchenBase"><span class="brand-name">Smart GMV</span><span class="brand-sub">Licensee portal</span></div>
     <form class="card login-card" id="login-form" autocomplete="on">
       <label class="field"><span>Email</span><input type="email" id="login-email" required autocomplete="username" inputmode="email"></label>
       <label class="field"><span>Password</span><input type="password" id="login-pw" required autocomplete="current-password"></label>
@@ -25,7 +25,7 @@
 <!-- ============ DAY VIEW ============ -->
 <div class="view hidden" id="view-day">
   <header class="top">
-    <div class="top-l"><span class="brand-mark sm">S</span><div><div class="top-title" id="acct-name">—</div><div class="top-sub" id="acct-brands">—</div></div></div>
+    <div class="top-l"><img class="brand-mark sm" src="icons/kb-mark.svg?v=20260902b" alt="KitchenBase"><div><div class="top-title" id="acct-name">—</div><div class="top-sub" id="acct-brands">—</div></div></div>
     <div class="top-r"><button class="link" id="btn-requests">My requests</button><button class="link" id="btn-logout">Sign out</button></div>
   </header>
   <div class="body">
@@ -53,7 +53,7 @@
 <!-- ============ CORRECTION SHEET ============ -->
 <div class="overlay hidden" id="amend-overlay">
   <div class="sheet">
-    <div class="sheet-h"><b id="am-title">Submit a correction</b><button class="icon" id="am-close" aria-label="Close">×</button></div>
+    <div class="sheet-h"><b id="am-title">Edit a record</b><button class="icon" id="am-close" aria-label="Close">×</button></div>
     <p class="note" id="am-sub"></p>
     <div class="chan-pick" id="am-chan"></div>
     <div class="drop" id="am-drop">
@@ -75,6 +75,6 @@
 <div class="overlay hidden" id="viewer"><div class="viewer-inner"><button class="icon viewer-close" id="viewer-close" aria-label="Close">×</button><img id="viewer-img" alt=""></div></div>
 
 <div class="toast hidden" id="toast"></div>
-<script src="app.js?v=20260902a"></script>
+<script src="app.js?v=20260902b"></script>
 </body>
 </html>

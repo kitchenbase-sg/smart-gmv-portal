@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- KitchenBASE brand mark: the black tile-grid collapsing into a
+       map pin, on a white base — same mark as the Smart GMV app. -->
+  <defs>
+    <mask id="grid">
+      <path d="M22 16 H78 A4 4 0 0 1 82 20 V62 L50 90 L18 62 V20 A4 4 0 0 1 22 16 Z" fill="#fff"/>
+      <rect x="38.5" y="10" width="4.5" height="84" fill="#000"/>
+      <rect x="57"   y="10" width="4.5" height="84" fill="#000"/>
+      <rect x="14" y="36.5" width="72" height="4.5" fill="#000"/>
+      <rect x="14" y="55"   width="72" height="4.5" fill="#000"/>
+    </mask>
+  </defs>
+  <rect width="100" height="100" rx="22" fill="#ffffff"/>
+  <rect width="100" height="100" mask="url(#grid)" fill="#000000"/>
+</svg>

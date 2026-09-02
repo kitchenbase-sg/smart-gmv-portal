@@ -12,6 +12,8 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const money = (v) => (v === '' || v === null || v === undefined) ? '—' : '$' + Number(v).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const CH = { grab: 'GrabFood', fp: 'foodpanda', others: 'Others', catering: 'Catering' };
+const CH_LOGO = { grab: 'icons/grab-wordmark.svg', fp: 'icons/foodpanda-wordmark.svg' };
+const chanLabel = (ch, txt) => (CH_LOGO[ch] ? `<img class="ch-logo" src="${CH_LOGO[ch]}" alt="${esc(CH[ch])}">` : esc(txt || CH[ch] || ch));
 
 const state = { token: '', me: null, date: '', yesterday: '', days: 45, records: [], loading: false };
 try { state.token = sessionStorage.getItem('smartgmv.tenant') || ''; } catch (e) {}
@@ -87,8 +89,8 @@ function renderDay() {
   }
   const note = $('day-note');
   note.textContent = state.loading ? 'Loading…' : state.error ? `⚠ ${state.error}`
-    : state.date === state.yesterday ? 'Yesterday can be corrected until midnight tonight: upload a fresh screenshot of the platform\'s summary screen.'
-    : 'Past days are read-only. Only yesterday\'s record can be corrected.';
+    : state.date === state.yesterday ? 'Yesterday can be edited until midnight tonight: upload a fresh screenshot of the platform\'s summary screen.'
+    : 'Past days are read-only. Only yesterday\'s record can be edited.';
   const list = $('day-list');
   if (state.loading) { list.innerHTML = '<div class="card empty"><span class="spinner"></span></div>'; return; }
   if (!state.records.length) { list.innerHTML = '<div class="card empty">No record for your kitchens on this day.</div>'; return; }
@@ -101,13 +103,13 @@ function renderDay() {
       ${r.status !== 'Operated' ? '' : chans.length ? chans.map(([ch, c]) => `
         <div class="chan">
           <div class="chan-l">${c.photoUrl ? `<img class="thumb" src="${esc(photoSrc(c.photoUrl))}" data-full="${esc(photoSrc(c.photoUrl))}" alt="">` : '<div class="thumb none">no photo</div>'}</div>
-          <div class="chan-m"><div class="chan-name">${esc(c.label || CH[ch] || ch)}</div>
+          <div class="chan-m"><div class="chan-name">${chanLabel(ch, c.label)}</div>
             ${c.noSales ? '<div class="fig muted">no sales declared</div>' : `<div class="fig"><b>${esc(String(c.orders ?? '—'))}</b> orders · <b>${money(c.gmv)}</b></div>`}
             ${(c.extras || []).length ? `<div class="fine">+ ${c.extras.length} order${c.extras.length > 1 ? 's' : ''} outside the summary</div>` : ''}
             ${(r.amendments || []).filter((a) => a.channel === ch).map((a) => `<div class="req-line ${esc(a.status)}">${statusLabel(a)}${a.status === 'pending' ? ` <button class="link" data-withdraw="${esc(a.id)}">withdraw</button>` : ''}</div>`).join('')}
           </div>
           <div class="chan-r">${r.amendable && (ch === 'grab' || ch === 'fp') && !pend.some((a) => a.channel === ch)
-            ? `<button class="btn-ghost" data-amend="${esc(r.recordId)}" data-ch="${esc(ch)}" data-brand="${esc(r.brand)}">Correct</button>` : ''}</div>
+            ? `<button class="btn-ghost" data-amend="${esc(r.recordId)}" data-ch="${esc(ch)}" data-brand="${esc(r.brand)}">Edit</button>` : ''}</div>
         </div>`).join('') : '<div class="fine">Recorded with no platform figures.</div>'}
     </div>`;
   }).join('');
@@ -131,10 +133,10 @@ $('viewer').onclick = (e) => { if (e.target === $('viewer')) $('viewer-close').c
 const am = { recordId: '', ch: '', dataUrl: '' };
 function openAmend(recordId, ch, brand) {
   am.recordId = recordId; am.ch = ch; am.dataUrl = '';
-  $('am-title').textContent = `Correct ${brand} · ${CH[ch] || ch}`;
+  $('am-title').textContent = `Edit ${brand} · ${CH[ch] || ch}`;
   $('am-sub').textContent = `${fmtDay(state.date)} — upload the ${CH[ch] || ch} summary screen for that day.`;
-  $('am-chan').innerHTML = ['grab', 'fp'].map((c) => `<button class="chip ${c === ch ? 'on' : ''}" data-c="${c}">${CH[c]}</button>`).join('');
-  $('am-chan').querySelectorAll('.chip').forEach((b) => b.onclick = () => { am.ch = b.dataset.c; $('am-chan').querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', x === b)); $('am-title').textContent = `Correct ${brand} · ${CH[am.ch]}`; });
+  $('am-chan').innerHTML = ['grab', 'fp'].map((c) => `<button class="chip ${c === ch ? 'on' : ''}" data-c="${c}"><img class="ch-logo" src="${CH_LOGO[c]}" alt="${CH[c]}"></button>`).join('');
+  $('am-chan').querySelectorAll('.chip').forEach((b) => b.onclick = () => { am.ch = b.dataset.c; $('am-chan').querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', x === b)); $('am-title').textContent = `Edit ${brand} · ${CH[am.ch]}`; });
   $('am-preview').classList.add('hidden'); $('am-preview').src = ''; $('am-drop-empty').classList.remove('hidden');
   $('am-err').classList.add('hidden'); $('am-submit').disabled = true; $('am-submit').textContent = 'Submit for review';
   $('amend-overlay').classList.remove('hidden');
