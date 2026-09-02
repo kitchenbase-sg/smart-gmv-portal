@@ -41,8 +41,21 @@ button { font: inherit; cursor: pointer; }
 /* top bar */
 .top { position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 1px solid var(--line); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .top-l { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; }
-.top-l > div { min-width: 0; }
-.top-title { font-weight: 700; font-size: 15px; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-l > div, .top-l > .acct-btn { min-width: 0; }
+.acct-btn { border: 0; background: none; padding: 0; text-align: left; color: inherit; font: inherit; cursor: default; flex: 1 1 auto; }
+.acct-btn.switchable { cursor: pointer; }
+.acct-btn.switchable .top-title::after { content: " ▾"; color: var(--accent); }
+.acct-btn.switchable:active .top-title { opacity: .6; }
+body.master .top { border-bottom: 2px solid var(--accent); }
+.acct-search { width: 100%; font: inherit; font-size: 16px; padding: 11px 14px; border: 1px solid var(--line); border-radius: 10px; margin: 4px 0 10px; color: var(--ink); background: #fff; }
+.acct-search:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+.acct-list { display: flex; flex-direction: column; gap: 6px; max-height: 56vh; overflow: auto; }
+.acct-row { text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 12px; padding: 10px 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--ink); }
+.acct-row b { font-size: 15px; }
+.acct-row small { flex-basis: 100%; color: var(--ink-3); font-size: 12px; line-height: 1.4; }
+.acct-row.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.acct-row:hover { background: var(--ground); }
+.top-title { font-weight: 700; font-size: 15px; letter-spacing: -.01em; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }   /* long account names get two lines, not "[PA…" */
 .top-sub { font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .top-r { display: flex; gap: 0; flex: none; white-space: nowrap; }
 .top-r .link { padding: 8px 8px; min-height: 40px; display: inline-flex; align-items: center; }

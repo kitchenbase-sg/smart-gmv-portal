@@ -15,7 +15,14 @@ const CH = { grab: 'GrabFood', fp: 'foodpanda', others: 'Others', catering: 'Cat
 const CH_LOGO = { grab: 'icons/grab-wordmark.svg', fp: 'icons/foodpanda-wordmark.svg' };
 const chanLabel = (ch, txt) => (CH_LOGO[ch] ? `<img class="ch-logo" src="${CH_LOGO[ch]}" alt="${esc(CH[ch])}">` : esc(txt || CH[ch] || ch));
 
-const state = { token: '', me: null, date: '', yesterday: '', days: 45, records: [], loading: false };
+const state = { token: '', me: null, date: '', yesterday: '', days: 45, records: [], loading: false,
+  as: '', readOnly: false };     // master login: which licensee is being viewed
+/* The master login (Ernest) reads any licensee's portal as that licensee; every
+   read carries ?as=<account>. The server refuses writes from it, so the page
+   simply never offers them. */
+const isMaster = () => !!(state.me && state.me.master);
+const asQ = () => (isMaster() ? `as=${encodeURIComponent(state.as)}` : '');
+const withQ = (path, ...parts) => { const q = parts.filter(Boolean).join('&'); return q ? `${path}?${q}` : path; };
 try { state.token = sessionStorage.getItem('smartgmv.tenant') || ''; } catch (e) {}
 function setToken(t) { state.token = t; try { t ? sessionStorage.setItem('smartgmv.tenant', t) : sessionStorage.removeItem('smartgmv.tenant'); } catch (e) {} }
 
@@ -42,14 +49,14 @@ $('login-form').onsubmit = async (e) => {
       body: JSON.stringify({ email: $('login-email').value.trim(), password: $('login-pw').value }) });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.detail || `HTTP ${r.status}`);
-    setToken(d.token); state.me = { email: $('login-email').value.trim(), account: d.account, brands: d.brands };
+    setToken(d.token); state.me = { email: $('login-email').value.trim(), account: d.account, brands: d.brands, master: !!d.master, accounts: d.accounts || [] };
     $('login-pw').value = '';
     enter();
   } catch (err) {
     $('login-err').textContent = err.message; $('login-err').classList.remove('hidden');
   } finally { btn.disabled = false; btn.textContent = 'Sign in'; }
 };
-$('btn-logout').onclick = () => { setToken(''); state.me = null; show('view-login'); };
+$('btn-logout').onclick = () => { setToken(''); state.me = null; state.as = ''; document.body.classList.remove('master'); show('view-login'); };
 
 async function boot() {
   if (!state.token) { show('view-login'); return; }
@@ -61,21 +68,41 @@ async function boot() {
 
 /* ---------- day view ---------- */
 function enter() {
-  $('acct-name').textContent = state.me.account || state.me.email;
-  $('acct-brands').textContent = (state.me.brands || []).join(' · ');
+  if (isMaster()) {
+    let saved = ''; try { saved = localStorage.getItem('smartgmv.master.as') || ''; } catch (e) {}
+    const list = state.me.accounts || [];
+    const pick = list.find((a) => a.account === saved) || list[0];
+    state.as = pick ? pick.account : '';
+  } else state.as = '';
+  document.body.classList.toggle('master', isMaster());
+  renderHead();
   // Bound the calendar before the first read lands: yesterday by the phone's
   // clock, 45 days back. The server's answer replaces both on the next render,
   // so an out-of-range day is greyed out in the picker, not rejected after a tap.
   show('view-day');
   loadDay('');
 }
+function renderHead() {
+  const btn = $('acct-btn');
+  if (isMaster()) {
+    const a = (state.me.accounts || []).find((x) => x.account === state.as);
+    $('acct-name').textContent = a ? a.account : 'Choose a licensee';
+    $('acct-brands').textContent = a ? (a.brands.length ? a.brands.join(' · ') : 'no brands listed yet') : 'master view';
+    btn.classList.add('switchable'); btn.setAttribute('aria-label', 'Switch licensee account');
+  } else {
+    $('acct-name').textContent = state.me.account || state.me.email;
+    $('acct-brands').textContent = (state.me.brands || []).join(' · ');
+    btn.classList.remove('switchable'); btn.removeAttribute('aria-label');
+  }
+}
 async function loadDay(date) {
   state.loading = true; renderDay();
   try {
-    const r = await api(`/api/tenant/records${date ? `?date=${date}` : ''}`);
+    const r = await api(withQ('/api/tenant/records', date ? `date=${date}` : '', asQ()));
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.detail || `HTTP ${r.status}`);
     state.date = d.date; state.yesterday = d.yesterday; state.days = d.historyDays || 45; state.records = d.records || [];
+    state.readOnly = !!d.readOnly;
     state.error = null;
   } catch (e) { state.error = e.message; }
   state.loading = false; renderDay();
@@ -122,6 +149,7 @@ function renderDay() {
   }
   const note = $('day-note');
   note.textContent = state.loading ? 'Loading…' : state.error ? `⚠ ${state.error}`
+    : state.readOnly ? `Master view of ${state.as} — exactly what the licensee sees. Read-only: only the licensee can file a request.`
     : state.date === state.yesterday ? 'Yesterday can be edited until midnight tonight: upload a fresh screenshot of the platform\'s summary screen.'
     : 'Past days are read-only. Only yesterday\'s record can be edited.';
   const list = $('day-list');
@@ -138,7 +166,7 @@ function renderDay() {
           <div class="chan-l">${c.photoUrl ? `<img class="thumb" src="${esc(photoSrc(c.photoUrl))}" data-full="${esc(photoSrc(c.photoUrl))}" alt="">` : '<div class="thumb none">no photo</div>'}</div>
           <div class="chan-m"><div class="chan-name">${chanLabel(ch, c.label)}</div>
             ${c.noSales ? '<div class="fig muted">no sales declared</div>' : `<div class="fig"><b>${esc(String(c.orders ?? '—'))}</b> orders · <b>${money(c.gmv)}</b></div>`}
-            ${(r.amendments || []).filter((a) => a.channel === ch).map((a) => `<div class="req-line ${esc(a.status)}">${statusLabel(a)}${a.status === 'pending' ? ` <button class="link" data-withdraw="${esc(a.id)}">withdraw</button>` : ''}</div>`).join('')}
+            ${(r.amendments || []).filter((a) => a.channel === ch).map((a) => `<div class="req-line ${esc(a.status)}">${statusLabel(a)}${a.status === 'pending' && !state.readOnly ? ` <button class="link" data-withdraw="${esc(a.id)}">withdraw</button>` : ''}</div>`).join('')}
           </div>
           <div class="chan-r">${r.amendable && (ch === 'grab' || ch === 'fp') && !pend.some((a) => a.channel === ch)
             ? `<button class="btn-ghost" data-amend="${esc(r.recordId)}" data-ch="${esc(ch)}" data-brand="${esc(r.brand)}">Edit</button>` : ''}</div>
@@ -169,6 +197,23 @@ function statusLabel(a) {
     : a.status === 'rejected' ? `✗ correction rejected${a.reason ? ' — ' + esc(a.reason) : ''}`
     : a.status === 'withdrawn' ? '↩ correction withdrawn' : esc(a.status);
 }
+
+/* ---------- account switcher (master login) ---------- */
+function openAcct() { $('acct-search').value = ''; renderAcct(''); $('acct-overlay').classList.remove('hidden'); if ((state.me.accounts || []).length > 8) setTimeout(() => $('acct-search').focus(), 60); }
+function renderAcct(q) {
+  q = q.trim().toLowerCase();
+  const list = (state.me.accounts || []).filter((a) => !q || a.account.toLowerCase().includes(q) || a.brands.some((b) => b.toLowerCase().includes(q)));
+  $('acct-list').innerHTML = list.length ? list.map((a) => `<button type="button" class="acct-row${a.account === state.as ? ' on' : ''}" data-a="${esc(a.account)}"><b>${esc(a.account)}</b>${a.active ? '' : '<span class="pill muted">inactive</span>'}${a.email ? '' : '<span class="pill muted">no login yet</span>'}<small>${esc(a.brands.join(' · ') || 'no brands listed yet')}</small></button>`).join('')
+    : '<div class="empty">No account matches.</div>';
+  $('acct-list').querySelectorAll('.acct-row').forEach((b) => b.onclick = () => {
+    state.as = b.dataset.a; try { localStorage.setItem('smartgmv.master.as', state.as); } catch (e) {}
+    $('acct-overlay').classList.add('hidden'); renderHead(); loadDay(state.date);
+  });
+}
+$('acct-btn').onclick = () => { if (isMaster()) openAcct(); };
+$('acct-search').oninput = (e) => renderAcct(e.target.value);
+$('acct-close').onclick = () => $('acct-overlay').classList.add('hidden');
+$('acct-overlay').onclick = (e) => { if (e.target === $('acct-overlay')) $('acct-close').click(); };
 
 /* ---------- photo viewer ---------- */
 function openViewer(src) { $('viewer-img').src = src; $('viewer').classList.remove('hidden'); }
@@ -239,8 +284,9 @@ async function withdraw(id) {
 /* ---------- my requests ---------- */
 $('btn-requests').onclick = async () => {
   show('view-requests'); $('req-list').innerHTML = '<div class="card empty"><span class="spinner"></span></div>';
+  $('req-title').textContent = isMaster() ? `${state.as} · correction requests` : 'My correction requests';
   try {
-    const r = await api('/api/tenant/amendments'); const d = await r.json().catch(() => ({}));
+    const r = await api(withQ('/api/tenant/amendments', asQ())); const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.detail || `HTTP ${r.status}`);
     const list = d.amendments || [];
     $('req-list').innerHTML = list.length ? list.map((a) => `<div class="card rec">

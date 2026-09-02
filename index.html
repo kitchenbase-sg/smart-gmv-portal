@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>Smart GMV · Licensee portal</title>
-<link rel="stylesheet" href="app.css?v=20260902f">
+<link rel="stylesheet" href="app.css?v=20260903a">
 </head>
 <body>
 <!-- ============ LOGIN ============ -->
@@ -25,7 +25,7 @@
 <!-- ============ DAY VIEW ============ -->
 <div class="view hidden" id="view-day">
   <header class="top">
-    <div class="top-l"><img class="brand-mark sm" src="icons/kb-mark.svg?v=20260902b" alt="KitchenBase"><div><div class="top-title" id="acct-name">—</div><div class="top-sub" id="acct-brands">—</div></div></div>
+    <div class="top-l"><img class="brand-mark sm" src="icons/kb-mark.svg?v=20260902b" alt="KitchenBase"><button class="acct-btn" id="acct-btn" type="button"><div class="top-title" id="acct-name">—</div><div class="top-sub" id="acct-brands">—</div></button></div>
     <div class="top-r"><button class="link" id="btn-requests">My requests</button><button class="link" id="btn-logout">Sign out</button></div>
   </header>
   <div class="body">
@@ -45,7 +45,7 @@
 <!-- ============ MY REQUESTS ============ -->
 <div class="view hidden" id="view-requests">
   <header class="top">
-    <div class="top-l"><button class="icon" id="req-back" aria-label="Back">‹</button><div class="top-title">My correction requests</div></div>
+    <div class="top-l"><button class="icon" id="req-back" aria-label="Back">‹</button><div class="top-title" id="req-title">My correction requests</div></div>
   </header>
   <div class="body"><div id="req-list"></div></div>
 </div>
@@ -86,10 +86,20 @@
   </div>
 </div>
 
+<!-- ============ ACCOUNT SWITCHER (master login only) ============ -->
+<div class="overlay hidden" id="acct-overlay">
+  <div class="sheet">
+    <div class="sheet-h"><b>View as licensee</b><button class="icon" id="acct-close" aria-label="Close">×</button></div>
+    <p class="note">Master view: the page shows exactly what that licensee sees. Read-only — requests can only be filed by the licensee.</p>
+    <input class="acct-search" id="acct-search" type="search" placeholder="Search by account or brand" autocomplete="off">
+    <div class="acct-list" id="acct-list"></div>
+  </div>
+</div>
+
 <!-- ============ PHOTO VIEWER ============ -->
 <div class="overlay hidden" id="viewer"><div class="viewer-inner"><button class="icon viewer-close" id="viewer-close" aria-label="Close">×</button><img id="viewer-img" alt=""></div></div>
 
 <div class="toast hidden" id="toast"></div>
-<script src="app.js?v=20260902f"></script>
+<script src="app.js?v=20260903a"></script>
 </body>
 </html>
