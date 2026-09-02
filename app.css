@@ -52,7 +52,20 @@ button { font: inherit; cursor: pointer; }
 .daybar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
 .daybar-mid { flex: 1; text-align: center; }
 .day-label { font-weight: 700; font-size: 15px; }
-.day-pick { font: inherit; font-size: 13px; color: var(--ink-2); border: 0; background: none; margin-top: 2px; text-align: center; }
+.day-pick { font: inherit; font-size: 12.5px; color: var(--accent); margin-top: 2px; text-align: center; font-weight: 600; }
+.daybar-mid { border: 0; background: none; font: inherit; color: inherit; padding: 4px 8px; border-radius: 10px; cursor: pointer; }
+.daybar-mid:active { background: var(--ground); }
+.sheet.cal { padding-bottom: 18px; }
+.cal-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 16px; }
+.cal-dow, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-dow span { text-align: center; font-size: 11px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; padding: 4px 0; }
+.cal-cell { height: 44px; border-radius: 10px; border: 0; background: #fff; font: inherit; font-size: 15px; color: var(--ink); display: flex; align-items: center; justify-content: center; }
+.cal-cell:not(.off):not(.blank):hover { background: var(--ground); }
+.cal-cell.blank { background: none; }
+.cal-cell.off { color: #C4C8D0; background: none; cursor: default; }
+.cal-cell.yday { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.cal-cell.sel { background: var(--accent); color: #fff; font-weight: 700; }
+.cal-close { width: 100%; margin-top: 12px; }
 .icon { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-size: 22px; line-height: 1; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; }
 .icon:disabled { opacity: .35; cursor: default; }
 

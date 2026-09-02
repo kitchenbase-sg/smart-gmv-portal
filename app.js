@@ -66,8 +66,6 @@ function enter() {
   // Bound the calendar before the first read lands: yesterday by the phone's
   // clock, 45 days back. The server's answer replaces both on the next render,
   // so an out-of-range day is greyed out in the picker, not rejected after a tap.
-  const guess = shiftDay(new Date().toISOString().slice(0, 10), -1);
-  $('day-pick').max = guess; $('day-pick').min = shiftDay(guess, -(state.days - 1));
   show('view-day');
   loadDay('');
 }
@@ -86,16 +84,39 @@ async function loadDay(date) {
 const minDay = () => shiftDay(state.yesterday, -(state.days - 1));
 $('day-prev').onclick = () => state.date && state.date > minDay() && loadDay(shiftDay(state.date, -1));
 $('day-next').onclick = () => state.date && state.date < state.yesterday && loadDay(shiftDay(state.date, 1));
-$('day-pick').onchange = (e) => {
-  const v = e.target.value; if (!v) return;
+/* ---------- calendar (our own — iOS Safari ignores min/max on <input type=date>,
+   so a native picker cannot grey out the days outside the window) ---------- */
+const cal = { ym: '' };
+const pad2 = (n) => String(n).padStart(2, '0');
+function openCal() { cal.ym = (state.date || state.yesterday).slice(0, 7); renderCal(); $('cal-overlay').classList.remove('hidden'); }
+function closeCal() { $('cal-overlay').classList.add('hidden'); }
+function renderCal() {
+  const [y, m] = cal.ym.split('-').map(Number);
   const lo = minDay(), hi = state.yesterday;
-  loadDay(v < lo ? lo : v > hi ? hi : v);       // browsers that ignore min/max still land inside the window
-};
+  $('cal-title').textContent = new Date(y, m - 1, 1).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' });
+  const first = new Date(y, m - 1, 1), daysIn = new Date(y, m, 0).getDate();
+  const lead = (first.getDay() + 6) % 7;                       // Monday-first
+  const cells = [];
+  for (let i = 0; i < lead; i++) cells.push('<span class="cal-cell blank"></span>');
+  for (let d = 1; d <= daysIn; d++) {
+    const ymd = `${y}-${pad2(m)}-${pad2(d)}`;
+    const ok = ymd >= lo && ymd <= hi;
+    cells.push(`<button type="button" class="cal-cell${ok ? '' : ' off'}${ymd === state.date ? ' sel' : ''}${ymd === hi ? ' yday' : ''}" data-d="${ymd}" ${ok ? '' : 'disabled aria-disabled="true"'}>${d}</button>`);
+  }
+  $('cal-grid').innerHTML = cells.join('');
+  $('cal-grid').querySelectorAll('.cal-cell:not(.off):not(.blank)').forEach((b) => b.onclick = () => { closeCal(); loadDay(b.dataset.d); });
+  $('cal-prev').disabled = cal.ym <= lo.slice(0, 7);
+  $('cal-next').disabled = cal.ym >= hi.slice(0, 7);
+}
+$('day-pick-btn').onclick = openCal;
+$('cal-close').onclick = closeCal;
+$('cal-overlay').onclick = (e) => { if (e.target === $('cal-overlay')) closeCal(); };
+$('cal-prev').onclick = () => { const [y, m] = cal.ym.split('-').map(Number); cal.ym = `${m === 1 ? y - 1 : y}-${pad2(m === 1 ? 12 : m - 1)}`; renderCal(); };
+$('cal-next').onclick = () => { const [y, m] = cal.ym.split('-').map(Number); cal.ym = `${m === 12 ? y + 1 : y}-${pad2(m === 12 ? 1 : m + 1)}`; renderCal(); };
 
 function renderDay() {
   if (state.date) {
     $('day-label').textContent = fmtDay(state.date) + (state.date === state.yesterday ? ' · yesterday' : '');
-    $('day-pick').value = state.date; $('day-pick').max = state.yesterday; $('day-pick').min = minDay();
     $('day-next').disabled = state.date >= state.yesterday;
     $('day-prev').disabled = state.date <= minDay();
   }

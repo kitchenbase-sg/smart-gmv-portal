@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>Smart GMV · Licensee portal</title>
-<link rel="stylesheet" href="app.css?v=20260902c">
+<link rel="stylesheet" href="app.css?v=20260902d">
 </head>
 <body>
 <!-- ============ LOGIN ============ -->
@@ -31,10 +31,10 @@
   <div class="body">
     <div class="daybar card">
       <button class="icon" id="day-prev" aria-label="Previous day">‹</button>
-      <div class="daybar-mid">
+      <button class="daybar-mid" id="day-pick-btn" type="button" aria-label="Choose a day">
         <div class="day-label" id="day-label">—</div>
-        <input type="date" id="day-pick" class="day-pick">
-      </div>
+        <div class="day-pick" id="day-pick-sub">tap to choose a day</div>
+      </button>
       <button class="icon" id="day-next" aria-label="Next day">›</button>
     </div>
     <p class="note" id="day-note"></p>
@@ -71,10 +71,25 @@
   </div>
 </div>
 
+<!-- ============ CALENDAR ============ -->
+<div class="overlay hidden" id="cal-overlay">
+  <div class="sheet cal">
+    <div class="cal-h">
+      <button class="icon" id="cal-prev" aria-label="Previous month">‹</button>
+      <b id="cal-title">—</b>
+      <button class="icon" id="cal-next" aria-label="Next month">›</button>
+    </div>
+    <div class="cal-dow"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <p class="fine" id="cal-note">Greyed-out days are outside the 45-day window or not recorded yet.</p>
+    <button class="btn-ghost cal-close" id="cal-close" type="button">Close</button>
+  </div>
+</div>
+
 <!-- ============ PHOTO VIEWER ============ -->
 <div class="overlay hidden" id="viewer"><div class="viewer-inner"><button class="icon viewer-close" id="viewer-close" aria-label="Close">×</button><img id="viewer-img" alt=""></div></div>
 
 <div class="toast hidden" id="toast"></div>
-<script src="app.js?v=20260902c"></script>
+<script src="app.js?v=20260902d"></script>
 </body>
 </html>
