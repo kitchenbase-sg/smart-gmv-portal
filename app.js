@@ -10,14 +10,19 @@ const CONFIG = (() => {
 })();
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const money = (v) => (v === '' || v === null || v === undefined) ? '—' : '$' + Number(v).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const blank = (v) => v === '' || v === null || v === undefined;
+const money = (v) => blank(v) ? '—' : '$' + Number(v).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const CH = { grab: 'GrabFood', fp: 'foodpanda', others: 'Others', catering: 'Catering' };
 const CH_LOGO = { grab: 'icons/grab-wordmark.svg', fp: 'icons/foodpanda-wordmark.svg' };
+const NO_PHOTO_CH = { dinein: true, promodinein: true };   // their photos are never shared, so no "no photo" gap either
+const ordersHtml = (n) => `<b>${esc(String(n))}</b> order${Number(n) === 1 ? '' : 's'}`;     // '1 order', '40 orders'
+const ordersText = (n) => `${n} order${Number(n) === 1 ? '' : 's'}`;
+const BILLED = ' Figures are the sales you are billed on: for kitchens open 24 hours, the sales from 10am to 10pm.';
 const chanLabel = (ch, txt) => (CH_LOGO[ch] ? `<img class="ch-logo" src="${CH_LOGO[ch]}" alt="${esc(CH[ch])}">` : esc(txt || CH[ch] || ch));
 
 const state = { token: '', me: null, date: '', yesterday: '', days: 45, records: [], loading: false,
   as: '', readOnly: false };     // master login: which licensee is being viewed
-/* The master login (Ernest) reads any licensee's portal as that licensee; every
+/* The master login reads any licensee's portal as that licensee; every
    read carries ?as=<account>. The server refuses writes from it, so the page
    simply never offers them. */
 const isMaster = () => !!(state.me && state.me.master);
@@ -149,9 +154,9 @@ function renderDay() {
   }
   const note = $('day-note');
   note.textContent = state.loading ? 'Loading…' : state.error ? `⚠ ${state.error}`
-    : state.readOnly ? `Master view of ${state.as} — exactly what the licensee sees. Read-only: only the licensee can file a request.`
-    : state.date === state.yesterday ? 'Yesterday can be edited until midnight tonight: upload a fresh screenshot of the platform\'s summary screen.'
-    : 'Past days are read-only. Only yesterday\'s record can be edited.';
+    : (state.readOnly ? `Master view of ${state.as} — exactly what the licensee sees. Read-only: only the licensee can file a request.`
+      : state.date === state.yesterday ? 'Yesterday can be edited until midnight tonight: upload a fresh screenshot of the platform\'s summary screen.'
+        : 'Past days are read-only. Only yesterday\'s record can be edited.') + BILLED;
   const list = $('day-list');
   if (state.loading) { list.innerHTML = '<div class="card empty"><span class="spinner"></span></div>'; return; }
   if (!state.records.length) { list.innerHTML = '<div class="card empty">No record for your kitchens on this day.</div>'; return; }
@@ -163,14 +168,14 @@ function renderDay() {
         <div class="rec-meta">${r.status === 'Operated' ? `recorded ${esc(r.recordedAt)}` : `<span class="pill muted">${esc(r.status)}</span>`}${r.edited ? ' <span class="pill amber">corrected</span>' : ''}</div></div>
       ${r.status !== 'Operated' ? '' : chans.length ? chans.map(([ch, c]) => `
         <div class="chan">
-          <div class="chan-l">${c.photoUrl ? `<img class="thumb" src="${esc(photoSrc(c.photoUrl))}" data-full="${esc(photoSrc(c.photoUrl))}" alt="">` : '<div class="thumb none">no photo</div>'}</div>
+          <div class="chan-l">${c.photoUrl ? `<img class="thumb" src="${esc(photoSrc(c.photoUrl))}" data-full="${esc(photoSrc(c.photoUrl))}" alt="">` : NO_PHOTO_CH[ch] ? '' : '<div class="thumb none">no photo</div>'}</div>
           <div class="chan-m"><div class="chan-name">${chanLabel(ch, c.label)}</div>
-            ${c.noSales ? '<div class="fig muted">no sales declared</div>' : `<div class="fig"><b>${esc(String(c.orders ?? '—'))}</b> orders · <b>${money(c.gmv)}</b></div>`}
+            ${figure(ch, c)}${NO_PHOTO_CH[ch] && !c.photoUrl ? '<div class="fig muted">The dine-in photo covers the whole site, so it is not shown.</div>' : ''}
             ${(r.amendments || []).filter((a) => a.channel === ch).map((a) => `<div class="req-line ${esc(a.status)}">${statusLabel(a)}${a.status === 'pending' && !state.readOnly ? ` <button class="link" data-withdraw="${esc(a.id)}">withdraw</button>` : ''}</div>`).join('')}
           </div>
-          <div class="chan-r">${r.amendable && (ch === 'grab' || ch === 'fp') && !pend.some((a) => a.channel === ch)
+          <div class="chan-r">${r.amendable && (ch === 'grab' || ch === 'fp') && !checking(ch, c) && !pend.some((a) => a.channel === ch)
             ? `<button class="btn-ghost" data-amend="${esc(r.recordId)}" data-ch="${esc(ch)}" data-brand="${esc(r.brand)}">Edit</button>` : ''}</div>
-          ${(c.extras || []).length ? extrasBlock(c) : ''}
+          ${(c.extras || []).length ? extrasBlock(c, checking(ch, c)) : ''}
         </div>`).join('') : '<div class="fine">Recorded with no platform figures.</div>'}
     </div>`;
   }).join('');
@@ -178,16 +183,26 @@ function renderDay() {
   list.querySelectorAll('[data-amend]').forEach((b) => b.onclick = () => openAmend(b.dataset.amend, b.dataset.ch, b.dataset.brand));
   list.querySelectorAll('[data-withdraw]').forEach((b) => b.onclick = () => withdraw(b.dataset.withdraw));
 }
+/* GrabFood and foodpanda show the figure the licensee is billed on (for a kitchen
+   open 24 hours, the sales from 10am to 10pm; the day note says so). While the
+   facility team checks one it arrives blank, and it is shown as being checked,
+   never as 0 or an empty figure, and cannot be corrected yet. */
+function checking(ch, c) { return (ch === 'grab' || ch === 'fp') && !c.noSales && blank(c.gmv); }
+function figure(ch, c) {
+  if (c.noSales) return '<div class="fig muted">no sales declared</div>';
+  if (checking(ch, c)) return '<div class="fig"><b>Being checked</b></div><div class="fig muted">The facility team is confirming this figure.</div>';
+  return `<div class="fig">${blank(c.orders) ? '<b>—</b> orders' : ordersHtml(c.orders)} · <b>${money(c.gmv)}</b></div>`
+    + (ch === 'grab' || ch === 'fp' ? '<div class="fig muted">Billed sales</div>' : '');
+}
 /* Orders that were still being delivered when the summary screen was shot are
    not on that screen. The facility team photographs each of those orders on
-   its own page and adds it, so the day's total = summary + these. Show the
-   split, the reason, and each order's photo. */
-function extrasBlock(c) {
+   its own page and adds it to the day's figure. Show how many, the reason, and
+   each order's photo. */
+function extrasBlock(c, isChecking) {
   const xs = c.extras || [];
   const xg = xs.reduce((t, e) => t + Number(e.gmv || 0), 0);
-  const so = Number(c.orders || 0) - xs.length, sg = Number(c.gmv || 0) - xg;
-  return `<details class="xtra"><summary>${esc(String(so))} on the summary screen · ${money(sg)} &nbsp;<b>+ ${xs.length} added after · ${money(xg)}</b></summary>
-    <div class="xtra-note">The platform's summary screen only counts orders already completed when it was shot. Orders still being delivered at that moment were photographed one by one by the facility team and added here, so the total above is summary + these.</div>
+  return `<details class="xtra"><summary>${isChecking ? '' : 'Includes '}<b>${xs.length} order${xs.length === 1 ? '' : 's'} added after the summary screen · ${money(xg)}</b></summary>
+    <div class="xtra-note">The platform's summary screen only counts orders already completed when it was shot. Orders still being delivered at that moment were photographed one by one by the facility team and added to the day's figure.</div>
     <div class="xtra-list">${xs.map((e, i) => `<div class="xtra-row">${e.photoUrl ? `<img class="thumb sm" src="${esc(photoSrc(e.photoUrl))}" data-full="${esc(photoSrc(e.photoUrl))}" alt="">` : '<div class="thumb sm none">no photo</div>'}<span>order ${i + 1} · ${money(e.gmv)}</span></div>`).join('')}</div>
   </details>`;
 }
@@ -228,7 +243,8 @@ function openAmend(recordId, ch, brand) {
   const rec = state.records.find((r) => r.recordId === recordId) || {};
   const xn = ((rec.channels || {})[ch] || {}).extras ? rec.channels[ch].extras.length : 0;
   $('am-sub').textContent = `${fmtDay(state.date)} — upload the ${CH[ch] || ch} summary screen for that day.`
-    + (xn ? ` The ${xn} order${xn > 1 ? 's' : ''} added after the screen was shot will be kept; only the summary figure is reviewed.` : '');
+    + (xn ? ` The ${xn} order${xn > 1 ? 's' : ''} added after the screen was shot will be kept; only the summary figure is reviewed.` : '')
+    + ' The team compares your photo with the recorded figure you are billed on, which can differ from the screen: it includes orders added after the screen was shot and, for kitchens open 24 hours, counts only sales from 10am to 10pm.';
   $('am-chan').innerHTML = ['grab', 'fp'].map((c) => `<button class="chip ${c === ch ? 'on' : ''}" data-c="${c}"><img class="ch-logo" src="${CH_LOGO[c]}" alt="${CH[c]}"></button>`).join('');
   $('am-chan').querySelectorAll('.chip').forEach((b) => b.onclick = () => { am.ch = b.dataset.c; $('am-chan').querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', x === b)); $('am-title').textContent = `Edit ${brand} · ${CH[am.ch]}`; });
   $('am-preview').classList.add('hidden'); $('am-preview').src = ''; $('am-drop-empty').classList.remove('hidden');
@@ -267,7 +283,7 @@ $('am-submit').onclick = async () => {
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.detail || `HTTP ${r.status}`);
     $('amend-overlay').classList.add('hidden');
-    toast(`Submitted ✓ — ${d.aiOrders != null ? `we read ${d.aiOrders} orders · ${money(d.aiGmv)}; ` : ''}the facility team will review it`);
+    toast(`Submitted ✓ — ${!blank(d.aiOrders) ? `from your summary screen photo we read ${ordersText(d.aiOrders)} · ${money(d.aiGmv)}; ` : ''}the facility team will review it`);
     loadDay(state.date);
   } catch (err) { $('am-err').textContent = err.message; $('am-err').classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Submit for review'; }
 };
@@ -292,7 +308,7 @@ $('btn-requests').onclick = async () => {
     $('req-list').innerHTML = list.length ? list.map((a) => `<div class="card rec">
         <div class="rec-h"><div><b>${esc(a.brand)}</b><span class="k">${esc(a.kitchen)}</span></div><div class="rec-meta">${esc(a.salesDate)} · ${esc(CH[a.channel] || a.channel)}</div></div>
         <div class="req-line ${esc(a.status)}">${statusLabel(a)}</div>
-        <div class="fine">submitted ${esc(a.submittedAt)}${a.aiOrders !== '' && a.aiOrders != null ? ` · we read ${esc(String(a.aiOrders))} orders · ${money(a.aiGmv)}` : ''}</div>
+        <div class="fine">submitted ${esc(a.submittedAt)}${!blank(a.aiOrders) ? ` · from your summary screen photo we read ${ordersHtml(a.aiOrders)} · ${money(a.aiGmv)}` : ''}</div>
         ${a.photoUrl ? `<img class="thumb wide" src="${esc(photoSrc(a.photoUrl))}" alt="">` : ''}
       </div>`).join('') : '<div class="card empty">No correction requests yet.</div>';
   } catch (err) { $('req-list').innerHTML = `<div class="card empty">⚠ ${esc(err.message)}</div>`; }
